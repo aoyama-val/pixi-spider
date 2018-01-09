@@ -23,7 +23,7 @@ var $mouseX = null;
 var $canonAngle = 0;
 
 function setup() {
-    //let canonImage = PIXI.utils.TextureCache["img/canon.png"];
+    // add canon
     let canonSprite = new PIXI.Sprite(PIXI.loader.resources["img/canon.png"].texture);
     canonSprite.width = 70;
     canonSprite.height = 70;
@@ -33,8 +33,23 @@ function setup() {
     canonSprite.anchor.x = 0.5;
     canonSprite.anchor.y = 0.5;
     app.stage.addChild(canonSprite);
-
     $canon = canonSprite;
+
+    // add text
+    let style = new PIXI.TextStyle({
+                              fontFamily: "Arial",
+                              fontSize: 36,
+                              fill: "white",
+                              stroke: '#ff3300',
+                              strokeThickness: 4,
+                              dropShadow: true,
+                              dropShadowColor: "#000000",
+                              dropShadowBlur: 4,
+                              dropShadowAngle: Math.PI / 6,
+                              dropShadowDistance: 6,
+    });
+    let message = new PIXI.Text("Hello Pixi!", style);
+    app.stage.addChild(message);
 
     app.ticker.add(delta => gameLoop(delta));
 
@@ -75,5 +90,12 @@ function onMouseMove(e) {
     }
     var dx = x - $mouseX;
     $canonAngle += (dx / 5);
+    $canonAngle = clamp(-90, $canonAngle, 90);
     $mouseX = x;
+}
+
+function clamp(min, val, max) {
+    if (val < min) return min;
+    if (val > max) return max;
+    return val;
 }
