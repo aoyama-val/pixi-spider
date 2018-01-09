@@ -123,14 +123,14 @@ function setup() {
     $app.stage.addChild($gameScene);
 
     // add canon
-    $canon = new Canon();
+    $canon = new Canon($gameScene);
     $gameScene.addChild($canon.sprite);
 
     $spiderSpawnCounter = new Counter(msToFrame($params.spider_spawn_counter));
 
     $app.ticker.add(delta => gameLoop(delta));
 
-    $score = new Score();
+    $score = new Score($gameScene);
     $objects.push($score);
     $gameScene.addChild($score.sprite);
 
@@ -143,7 +143,7 @@ function gameLoop(delta) {
     if ($spiderSpawnCounter.isFinished()) {
         if ($spiders.length < $params.max_spiders) {
             // add spider
-            var spider = new Spider();
+            var spider = new Spider($gameScene);
             $gameScene.addChild(spider.sprite);
             $spiders.push(spider);
         }
@@ -163,25 +163,22 @@ function gameLoop(delta) {
                                  s.sprite.width,
                                  s.sprite.height)) {
                 console.log("collide");
-                var img = new Effect(IMG_CRASH, s.sprite.x, s.sprite.y, 40, 40, msToFrame(700));
+                var img = new Effect($gameScene, IMG_CRASH, s.sprite.x, s.sprite.y, 40, 40, msToFrame(700));
                 $objects.push(img);
-                $gameScene.addChild(img.sprite);
                 s.die();
                 $score.score += 100 * Math.sqrt(s.speed);
             }
         });
     });
 
-    $spiders = doAction($spiders);
-    $bullets = doAction($bullets);
-    $objects = doAction($objects);
+    $spiders = doUpdate($spiders);
+    $bullets = doUpdate($bullets);
+    $objects = doUpdate($objects);
 }
 
-function doAction(objects) {
+function doUpdate(objects) {
     objects.forEach(function(x) {
-        x.action();
-        if (!x.isAlive())
-            $gameScene.removeChild(x.sprite);
+        x.update();
     });
     return objects.filter(function(x) { return x.isAlive(); });
 }
@@ -201,7 +198,7 @@ function onMouseMove(e) {
 function onClick() {
     console.log("click");
     if ($bullets.length < $params.max_bullets) {
-        var bullet = new Bullet();
+        var bullet = new Bullet($gameScene);
         bullet.sprite.x = $canon.sprite.x;
         bullet.sprite.y = $canon.sprite.y;
         var v = $params.bullet_speed;
@@ -215,8 +212,31 @@ function onClick() {
 //=============================================================================
 //   ゲームオブジェクト
 //=============================================================================
+class GameObject {
+    constructor(scene) {
+        this.scene = scene;
+        this.alive = true;
+        this.sprite = null;
+    }
+
+    update() {
+        if (this.sprite && !this.isAlive()) {
+            scene.removeChild(this.sprite);
+        }
+    }
+
+    isAlive() {
+        return this.alive;
+    }
+
+    die() {
+        this.alive = false;
+    }
+}
+
 class Canon {
-    constructor() {
+    constructor(scene) {
+        this.scene = scene;
         let sprite = new PIXI.Sprite(PIXI.loader.resources[IMG_CANON].texture);
         sprite.width = 70;
         sprite.height = 70;
@@ -237,11 +257,11 @@ class Canon {
         this.angle = clamp(-90, this.angle, 90);
         this.sprite.rotation = 2 * Math.PI * (this.angle / 360);
     }
-
 }
 
 class Spider {
-    constructor() {
+    constructor(scene) {
+        this.scene = scene;
         this.alive = true;
 
         var sprite = new PIXI.Sprite(PIXI.loader.resources[IMG_SPIDER].texture);
@@ -266,7 +286,7 @@ class Spider {
         this.sprite.vy = v * Math.sin(angle);
     }
 
-    action() {
+    update() {
         this.sprite.x += this.sprite.vx;
         this.sprite.y += this.sprite.vy;
         if (this.sprite.x < 0)          this.sprite.x = SCREEN_W;
@@ -278,6 +298,8 @@ class Spider {
         if (this.changeSpeedCounter.isFinished()) {
             this.changeSpeed();
         }
+        if (!this.isAlive())
+            this.scene.removeChild(this.sprite);
     }
 
     isAlive() {
@@ -290,7 +312,8 @@ class Spider {
 }
 
 class Bullet {
-    constructor() {
+    constructor(scene) {
+        this.scene = scene;
         this.alive = true;
 
         var sprite = new PIXI.Sprite(PIXI.loader.resources[IMG_BULLET].texture);
@@ -299,16 +322,20 @@ class Bullet {
         sprite.width = 40;
         sprite.height = 40;
         this.sprite = sprite;
-
     }
 
-    action() {
+    update() {
         this.sprite.x += this.sprite.vx;
         this.sprite.y += this.sprite.vy;
         if (this.sprite.x < 0 || this.sprite.x > SCREEN_W || this.sprite.y < 0 || this.sprite.SCREEN_H) {
-            this.alive = false;
+            this.die();
+            console.log("die");
         }
         this.sprite.rotation += 0.5;
+        if (!this.isAlive()) {
+            console.log("clear");
+            this.scene.removeChild(this.sprite);
+        }
     }
 
     isAlive() {
@@ -341,7 +368,7 @@ class Score {
         this.sprite = new PIXI.Text("Score", style);
     }
 
-    action() {
+    update() {
         if (this.displayingScore < this.score) {
             this.displayingScore += 1;
             this.sprite.text = "Score:  " + this.displayingScore;
@@ -358,8 +385,10 @@ class Score {
 }
 
 class Effect {
-    constructor(resource_key, x, y, w, h, frame) {
+    constructor(scene, resource_key, x, y, w, h, frame) {
+        this.scene = scene;
         this.resource_key = resource_key;
+        
         this.alive = true;
         if (frame >= 0) {
             this.counter = new Counter(frame);
@@ -373,15 +402,19 @@ class Effect {
         sprite.x = x;
         sprite.y = y;
         this.sprite = sprite;
+
+        this.scene.addChild(this.sprite);
     }
 
-    action() {
+    update() {
         if (this.counter) {
             this.counter.count();
             if (this.counter.isFinished()) {
                 this.die();
             }
         }
+        if (!this.isAlive())
+            this.scene.removeChild(this.sprite);
     }
 
     isAlive() {
