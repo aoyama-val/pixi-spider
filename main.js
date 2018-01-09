@@ -207,20 +207,11 @@ class GameScene extends IScene {
 
     onClick() {
         console.log("onClick");
-        this.mgr.changeScene(new GameOverScene(this.mgr));
+        //this.mgr.changeScene(new GameOverScene(this.mgr));
 
-    /*
-    if ($bullets.length < $params.max_bullets) {
-        var bullet = new Bullet($gameScene);
-        bullet.sprite.x = $canon.sprite.x;
-        bullet.sprite.y = $canon.sprite.y;
-        var v = $params.bullet_speed;
-        bullet.sprite.vx = v * -Math.cos(deg2rad($canon.angle + 90));
-        bullet.sprite.vy = v * -Math.sin(deg2rad($canon.angle + 90));
-        $gameScene.addChild(bullet.sprite);
-        $bullets.push(bullet);
-    }
-    */
+        if ($bullets.length < $params.max_bullets) {
+            var bullet = new Bullet(this, $canon.sprite.x, $canon.sprite.y, $canon.angle);
+        }
     }
 
     onMouseMove(e) {
@@ -447,14 +438,22 @@ class Spider extends IGameObject {
 }
 
 class Bullet extends IGameObject {
-    constructor(scene) {
+    constructor(scene, x, y, angle) {
         super(scene);
         var sprite = new PIXI.Sprite(PIXI.loader.resources[IMG_BULLET].texture);
         sprite.anchor.x = 0.5;
         sprite.anchor.y = 0.5;
         sprite.width = 40;
         sprite.height = 40;
+        sprite.x = x;
+        sprite.y = y;
+        var v = $params.bullet_speed;
+        sprite.vx = v * -Math.cos(deg2rad(angle + 90));
+        sprite.vy = v * -Math.sin(deg2rad(angle + 90));
         this.sprite = sprite;
+
+        scene.container.addChild(this.sprite);
+        $bullets.push(this);
     }
 
     update() {
