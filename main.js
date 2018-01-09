@@ -25,6 +25,13 @@ var $spiders = [];
 var $spiderSpawnCounter;
 var $bullets = [];
 
+var $params = {
+    bullet_speed: 9.0,
+    max_spiders: 2,
+    spider_speed_max: 4.0,
+    spider_spawn_counter: 2000, // ms
+};
+
 
 //=============================================================================
 //   ユーティリティ
@@ -127,7 +134,7 @@ function setup() {
     let message = new PIXI.Text("Hello Pixi!", style);
     $gameScene.addChild(message);
 
-    $spiderSpawnCounter = new Counter(msToFrame(2000));
+    $spiderSpawnCounter = new Counter(msToFrame($params.spider_spawn_counter));
 
     $app.ticker.add(delta => gameLoop(delta));
 
@@ -138,10 +145,12 @@ function setup() {
 function gameLoop(delta) {
     $spiderSpawnCounter.count();
     if ($spiderSpawnCounter.isFinished()) {
-        // add spider
-        var spider = new Spider();
-        $gameScene.addChild(spider.sprite);
-        $spiders.push(spider);
+        if ($spiders.length < $params.max_spiders) {
+            // add spider
+            var spider = new Spider();
+            $gameScene.addChild(spider.sprite);
+            $spiders.push(spider);
+        }
 
         $spiderSpawnCounter.reset();
     }
@@ -176,7 +185,7 @@ function onClick() {
     var bullet = new Bullet();
     bullet.sprite.x = $canon.sprite.x;
     bullet.sprite.y = $canon.sprite.y;
-    var v = 9;
+    var v = $params.bullet_speed;
     bullet.sprite.vx = v * -Math.cos(deg2rad($canon.angle + 90));
     bullet.sprite.vy = v * -Math.sin(deg2rad($canon.angle + 90));
     $gameScene.addChild(bullet.sprite);
@@ -229,10 +238,10 @@ class Spider {
 
     changeSpeed() {
         this.changeSpeedCounter = new Counter(randomInt(msToFrame(1000), msToFrame(2000)));
-        var v = Math.random() * 4;
-        var r = Math.random() * 2 * Math.PI;
-        this.sprite.vx = v * Math.cos(r);
-        this.sprite.vy = v * Math.sin(r);
+        var v = Math.random() * $params.spider_speed_max;
+        var angle = Math.random() * 2 * Math.PI;
+        this.sprite.vx = v * Math.cos(angle);
+        this.sprite.vy = v * Math.sin(angle);
     }
 
     action() {
