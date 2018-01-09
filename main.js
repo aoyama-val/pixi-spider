@@ -161,6 +161,24 @@ function onClick() {
     }
 }
 
+function createText(text, x, y, size, color) {
+    var text = new PIXI.Text(text, {
+        fontFamily: "Arial",
+        fontSize: size,
+        fill: "white",
+        stroke: color,
+        strokeThickness: 4,
+        dropShadow: true,
+        dropShadowColor: "#000000",
+        dropShadowBlur: 4,
+        dropShadowAngle: Math.PI / 6,
+        dropShadowDistance: 6,
+    });
+    text.anchor.set(0.5);
+    text.position.set(x, y);
+    return text;
+}
+
 //=============================================================================
 //   シーン
 //=============================================================================
@@ -215,20 +233,7 @@ class StartScene extends IScene {
     constructor(mgr) {
         super(mgr);
 
-        var text = new PIXI.Text("Click to start", {
-                                fontFamily: "Arial",
-                                fontSize: 40,
-                                fill: "white",
-                                stroke: '#ff3300',
-                                strokeThickness: 4,
-                                dropShadow: true,
-                                dropShadowColor: "#000000",
-                                dropShadowBlur: 4,
-                                dropShadowAngle: Math.PI / 6,
-                                dropShadowDistance: 6,
-        });
-        text.anchor.set(0.5);
-        text.position.set(SCREEN_W / 2, SCREEN_H / 2);
+        var text = createText("Click to start", SCREEN_W / 2, SCREEN_H / 2, 40, "#ff3300");
         this.container.addChild(text);
 
         var timer = new Timer(this);
@@ -327,23 +332,7 @@ class GameOverScene extends IScene {
     constructor(mgr) {
         super(mgr);
 
-        let style = new PIXI.TextStyle({
-                                fontFamily: "Arial",
-                                fontSize: 40,
-                                fill: "white",
-                                stroke: '#ff3300',
-                                strokeThickness: 4,
-                                dropShadow: true,
-                                dropShadowColor: "#000000",
-                                dropShadowBlur: 4,
-                                dropShadowAngle: Math.PI / 6,
-                                dropShadowDistance: 6,
-        });
-        var gameOverText = new PIXI.Text("GAME OVER", style);
-        gameOverText.anchor.x = 0.5
-        gameOverText.anchor.y = 0.5
-        gameOverText.x = SCREEN_W / 2
-        gameOverText.y = SCREEN_H / 2
+        var gameOverText = createText("GAME OVER", SCREEN_W / 2, SCREEN_H / 2, 40, "#ff3300");
         this.container.addChild(gameOverText);
 
         this.canRetryCounter = new Counter(msToFrame(1500));
@@ -363,21 +352,7 @@ class GameOverScene extends IScene {
                 this.canRetry = true;
                 this.canRetryCounter = null;
 
-                let style = new PIXI.TextStyle({
-                                        fontFamily: "Arial",
-                                        fontSize: 20,
-                                        fill: "white",
-                                        stroke: '#ff3300',
-                                        strokeThickness: 4,
-                                        dropShadow: true,
-                                        dropShadowColor: "#000000",
-                                        dropShadowBlur: 4,
-                                        dropShadowAngle: Math.PI / 6,
-                                        dropShadowDistance: 6,
-                });
-                var sprite = new PIXI.Text("Click to retry", style);
-                sprite.x = SCREEN_W - 150;
-                sprite.y = SCREEN_H - 30;
+                var sprite = createText("Click to retry", SCREEN_W - 150, SCREEN_H - 30, 20, "#ff3300");
                 this.container.addChild(sprite);
             }
         }
@@ -517,19 +492,8 @@ class Score extends IGameObject {
         this.score = 0;
         this.displayingScore = 0;
 
-        let style = new PIXI.TextStyle({
-                                fontFamily: "Arial",
-                                fontSize: 20,
-                                fill: "white",
-                                stroke: '#ff3300',
-                                strokeThickness: 4,
-                                dropShadow: true,
-                                dropShadowColor: "#000000",
-                                dropShadowBlur: 4,
-                                dropShadowAngle: Math.PI / 6,
-                                dropShadowDistance: 6,
-        });
-        this.sprite = new PIXI.Text("Score  0", style);
+        this.sprite = createText("Score  0", 0, 0, 20, "#ff3300");
+        this.sprite.anchor.set(0);
         this.scene.container.addChild(this.sprite);
         $effects.push(this);
     }
@@ -546,20 +510,8 @@ class Score extends IGameObject {
 class Timer extends IGameObject {
     constructor(scene) {
         super(scene);
-        let style = new PIXI.TextStyle({
-                                fontFamily: "Arial",
-                                fontSize: 20,
-                                fill: "white",
-                                stroke: '#0033ff',
-                                strokeThickness: 4,
-                                dropShadow: true,
-                                dropShadowColor: "#000000",
-                                dropShadowBlur: 4,
-                                dropShadowAngle: Math.PI / 6,
-                                dropShadowDistance: 6,
-        });
-        this.sprite = new PIXI.Text("Time  ", style);
-        this.sprite.x = 200;
+        this.sprite = createText("Time  ", 200, 0, 20, "#0033ff");
+        this.sprite.anchor.set(0);
         this.scene.container.addChild(this.sprite);
         this.counter = new Counter(msToFrame($params.timeLimit));
         $effects.push(this);
