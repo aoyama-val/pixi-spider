@@ -122,6 +122,48 @@ function main() {
         .load(setup);
 }
 
+function setup() {
+    $sceneMgr = new SceneManager($app)
+
+    $sceneMgr.changeScene(new StartScene($sceneMgr));
+
+    $app.ticker.add(delta => gameLoop(delta));
+
+    window.addEventListener("mousemove", onMouseMove, false);
+    window.addEventListener("click", onClick, false);
+}
+
+function gameLoop(delta) {
+    var scene = $sceneMgr.getTop();
+    if (scene) {
+        scene.update();
+    }
+}
+
+function doUpdate(objects) {
+    objects.forEach(function(x) {
+        x.update();
+    });
+    return objects.filter(function(x) { return x.isAlive(); });
+}
+
+function onMouseMove(e) {
+    var scene = $sceneMgr.getTop();
+    if (scene) {
+        scene.onMouseMove(e);
+    }
+}
+
+function onClick() {
+    var scene = $sceneMgr.getTop();
+    if (scene) {
+        scene.onClick();
+    }
+}
+
+//=============================================================================
+//   シーン
+//=============================================================================
 class SceneManager {
     constructor() {
         this.scenes = []
@@ -133,7 +175,6 @@ class SceneManager {
         });
         this.scenes = [scene]
         $app.stage.addChild(scene.container);
-        console.log("changeScene");
     }
 
     pushScene(scene) {
@@ -202,7 +243,6 @@ class StartScene extends IScene {
     }
 
     onClick() {
-        console.log("onClick");
         this.mgr.changeScene(new GameScene(this.mgr));
     }
 
@@ -248,7 +288,6 @@ class GameScene extends IScene {
                                     s.sprite.y - s.sprite.height / 2, 
                                     s.sprite.width,
                                     s.sprite.height)) {
-                    console.log("collide");
                     var img = new Effect(that, IMG_CRASH, s.sprite.x, s.sprite.y, 40, 40, msToFrame(700));
                     $effects.push(img);
                     s.die();
@@ -266,15 +305,12 @@ class GameScene extends IScene {
     }
 
     onClick() {
-        console.log("onClick");
-
         if ($bullets.length < $params.maxBullets) {
             var bullet = new Bullet(this, $canon.sprite.x, $canon.sprite.y, $canon.angle);
         }
     }
 
     onMouseMove(e) {
-        console.log("mouseM");
         var x = e.clientX;
         if ($mouseX == -1) {
             $mouseX = x;
@@ -348,45 +384,6 @@ class GameOverScene extends IScene {
     }
 }
 
-function setup() {
-    $sceneMgr = new SceneManager($app)
-
-    $sceneMgr.changeScene(new StartScene($sceneMgr));
-
-    $app.ticker.add(delta => gameLoop(delta));
-
-    window.addEventListener("mousemove", onMouseMove, false);
-    window.addEventListener("click", onClick, false);
-}
-
-function gameLoop(delta) {
-    var scene = $sceneMgr.getTop();
-    if (scene) {
-        scene.update();
-    }
-}
-
-function doUpdate(objects) {
-    objects.forEach(function(x) {
-        x.update();
-    });
-    return objects.filter(function(x) { return x.isAlive(); });
-}
-
-function onMouseMove(e) {
-    var scene = $sceneMgr.getTop();
-    if (scene) {
-        scene.onMouseMove(e);
-    }
-}
-
-function onClick() {
-    console.log("click");
-    var scene = $sceneMgr.getTop();
-    if (scene) {
-        scene.onClick();
-    }
-}
 
 //=============================================================================
 //   ゲームオブジェクト
@@ -400,7 +397,6 @@ class IGameObject {
 
     update() {
         if (this.sprite && !this.isAlive()) {
-            console.log("remove object");
             this.scene.container.removeChild(this.sprite);
         }
     }
@@ -509,7 +505,6 @@ class Bullet extends IGameObject {
         this.sprite.y += this.sprite.vy;
         if (this.sprite.x < 0 || this.sprite.x > SCREEN_W || this.sprite.y < 0 || this.sprite.SCREEN_H) {
             this.die();
-            console.log("die");
         }
         this.sprite.rotation += 0.5;
         super.update();
@@ -574,7 +569,6 @@ class Timer extends IGameObject {
         this.counter.count();
         this.sprite.text = "Time  " + Math.ceil(this.counter.frame / FPS);
         if (this.counter.isFinished()) {
-            console.log("isFinished");
              this.scene.mgr.pushScene(new GameOverScene(this.scene.mgr));
         }
     }
