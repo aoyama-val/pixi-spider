@@ -1,6 +1,6 @@
 // TODO
 // - 時間制限1分。リトライ可能にする
-// - シーンをスタックで表す
+// シーンマネージャをグローバル変数にする
 // - モバイル対応
 //  - タップとスワイプ対応
 //  - 解像度
@@ -41,6 +41,7 @@ var $params = {
     max_bullets: 3,
     spider_speed_max: 4.0,
     spider_spawn_counter: 2000, // ms
+    timeLimit: 30000,   // ms
 };
 
 
@@ -133,6 +134,7 @@ class SceneManager {
         });
         this.scenes = [scene]
         $app.stage.addChild(scene.container);
+        console.log("changeScene");
     }
 
     pushScene(scene) {
@@ -200,14 +202,56 @@ class GameScene extends IScene {
     constructor(mgr) {
         super(mgr);
 
-        $canon = new Canon(this);
         $timer = new Timer(this);
         $score = new Score(this);
+        $canon = new Canon(this);
+        $spiders = [];
+        $spiderSpawnCounter = new Counter(msToFrame($params.spider_spawn_counter));
+        $bullets = [];
+        $effects = [];
+    }
+
+    update() {
+        var that = this;
+        $spiderSpawnCounter.count();
+        if ($spiderSpawnCounter.isFinished()) {
+            if ($spiders.length < $params.max_spiders) {
+                var spider = new Spider(this);
+            }
+
+            $spiderSpawnCounter.reset();
+        }
+
+        $bullets.forEach(function(b) {
+            $spiders.forEach(function(s) {
+                if (hitTestRectangle(
+                                    b.sprite.x - b.sprite.width / 2, 
+                                    b.sprite.y - b.sprite.height / 2, 
+                                    b.sprite.width,
+                                    b.sprite.height,
+                                    s.sprite.x - s.sprite.width / 2, 
+                                    s.sprite.y - s.sprite.height / 2, 
+                                    s.sprite.width,
+                                    s.sprite.height)) {
+                    console.log("collide");
+                    var img = new Effect(that, IMG_CRASH, s.sprite.x, s.sprite.y, 40, 40, msToFrame(700));
+                    $effects.push(img);
+                    s.die();
+                    $score.score += 100 * Math.sqrt(s.speed);
+                }
+            });
+        });
+
+        $spiders = doUpdate($spiders);
+        $bullets = doUpdate($bullets);
+        $effects = doUpdate($effects);
+
+        $score.update();
+        $timer.update();
     }
 
     onClick() {
         console.log("onClick");
-        //this.mgr.changeScene(new GameOverScene(this.mgr));
 
         if ($bullets.length < $params.max_bullets) {
             var bullet = new Bullet(this, $canon.sprite.x, $canon.sprite.y, $canon.angle);
@@ -250,11 +294,23 @@ class GameOverScene extends IScene {
         gameOverText.x = SCREEN_W / 2
         gameOverText.y = SCREEN_H / 2
         this.container.addChild(gameOverText);
+
+        this.canRetryCounter = new Counter(msToFrame(1500));
+        this.canRetry = false;
     }
 
     onClick() {
-        console.log("onClick");
-        this.mgr.changeScene(new StartScene(this.mgr));
+        if (this.canRetry) {
+            this.mgr.changeScene(new GameScene(this.mgr));
+        }
+    }
+
+    update() {
+        console.log("asdad");
+        this.canRetryCounter.count();
+        if (this.canRetryCounter.isFinished()) {
+            this.canRetry = true;
+        }
     }
 }
 
@@ -267,51 +323,22 @@ function setup() {
     $gameOverScene = new PIXI.Container();
 
 
-    $spiderSpawnCounter = new Counter(msToFrame($params.spider_spawn_counter));
 
 
-    $app.ticker.add(delta => gameLoop(delta));
 
     */
+
+    $app.ticker.add(delta => gameLoop(delta));
 
     window.addEventListener("mousemove", onMouseMove, false);
     window.addEventListener("click", onClick, false);
 }
 
 function gameLoop(delta) {
-    $spiderSpawnCounter.count();
-    if ($spiderSpawnCounter.isFinished()) {
-        if ($spiders.length < $params.max_spiders) {
-            // add spider
-            var spider = new Spider($gameScene);
-        }
-
-        $spiderSpawnCounter.reset();
+    var scene = $sceneMgr.getTop();
+    if (scene) {
+        scene.update();
     }
-
-    $bullets.forEach(function(b) {
-        $spiders.forEach(function(s) {
-            if (hitTestRectangle(
-                                 b.sprite.x - b.sprite.width / 2, 
-                                 b.sprite.y - b.sprite.height / 2, 
-                                 b.sprite.width,
-                                 b.sprite.height,
-                                 s.sprite.x - s.sprite.width / 2, 
-                                 s.sprite.y - s.sprite.height / 2, 
-                                 s.sprite.width,
-                                 s.sprite.height)) {
-                console.log("collide");
-                var img = new Effect($gameScene, IMG_CRASH, s.sprite.x, s.sprite.y, 40, 40, msToFrame(700));
-                $effects.push(img);
-                s.die();
-                $score.score += 100 * Math.sqrt(s.speed);
-            }
-        });
-    });
-
-    $spiders = doUpdate($spiders);
-    $bullets = doUpdate($bullets);
-    $effects = doUpdate($effects);
 }
 
 function doUpdate(objects) {
@@ -319,10 +346,6 @@ function doUpdate(objects) {
         x.update();
     });
     return objects.filter(function(x) { return x.isAlive(); });
-}
-
-function isPlaying() {
-    return false;
 }
 
 function onMouseMove(e) {
@@ -516,9 +539,9 @@ class Timer extends IGameObject {
                                 dropShadowDistance: 6,
         });
         this.sprite = new PIXI.Text("Time: ", style);
-        this.sprite.x = 100;
+        this.sprite.x = 200;
         this.scene.container.addChild(this.sprite);
-        this.counter = new Counter(msToFrame(6000));
+        this.counter = new Counter(msToFrame($params.timeLimit));
         $effects.push(this);
     }
 
@@ -526,8 +549,8 @@ class Timer extends IGameObject {
         this.counter.count();
         this.sprite.text = "Time:  " + Math.ceil(this.counter.frame / FPS);
         if (this.counter.isFinished()) {
-            $currentScene = $gameOverScene;
-            $app.stage.addChild($gameOverScene);
+            console.log("isFinished");
+             this.scene.mgr.pushScene(new GameOverScene(this.scene.mgr));
         }
     }
 }
