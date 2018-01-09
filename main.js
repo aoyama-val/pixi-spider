@@ -1,3 +1,11 @@
+// TODO
+// - Sprite.pivotとSprite.anchorの調査
+// - 当たったときのエフェクト
+// - スコア
+// - モバイル対応
+//  - タップとスワイプ対応
+//  - 解像度
+
 "use strict";
 
 //=============================================================================
@@ -154,6 +162,23 @@ function gameLoop(delta) {
 
         $spiderSpawnCounter.reset();
     }
+
+    $bullets.forEach(function(b) {
+        $spiders.forEach(function(s) {
+            if (hitTestRectangle(
+                                 b.sprite.x - b.sprite.width / 2, 
+                                 b.sprite.y - b.sprite.height / 2, 
+                                 b.sprite.width,
+                                 b.sprite.height,
+                                 s.sprite.x - s.sprite.width / 2, 
+                                 s.sprite.y - s.sprite.height / 2, 
+                                 s.sprite.width,
+                                 s.sprite.height)) {
+                console.log("collide");
+                s.alive = false;
+            }
+        });
+    });
 
     $spiders = doAction($spiders);
     $bullets = doAction($bullets);
