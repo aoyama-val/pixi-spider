@@ -1,8 +1,8 @@
 // TODO
+// - 時間制限1分。リトライ可能にする
 // - モバイル対応
 //  - タップとスワイプ対応
 //  - 解像度
-// - 時間制限1分。リトライ可能にする
 
 "use strict";
 
@@ -130,12 +130,10 @@ function setup() {
     $spiderSpawnCounter = new Counter(msToFrame($params.spider_spawn_counter));
 
     $timer = new Timer($gameScene);
-    $effects.push($timer);
 
     $app.ticker.add(delta => gameLoop(delta));
 
     $score = new Score($gameScene);
-    $effects.push($score);
 
     window.addEventListener("mousemove", onMouseMove, false);
     window.addEventListener("click", onClick, false);
@@ -147,8 +145,6 @@ function gameLoop(delta) {
         if ($spiders.length < $params.max_spiders) {
             // add spider
             var spider = new Spider($gameScene);
-            $gameScene.addChild(spider.sprite);
-            $spiders.push(spider);
         }
 
         $spiderSpawnCounter.reset();
@@ -278,6 +274,9 @@ class Spider extends GameObject {
         this.speed = 0;
 
         this.changeSpeed();
+
+        this.scene.addChild(this.sprite);
+        $spiders.push(this);
     }
 
     changeSpeed() {
@@ -348,6 +347,7 @@ class Score extends GameObject {
         });
         this.sprite = new PIXI.Text("Score", style);
         this.scene.addChild(this.sprite);
+        $effects.push(this);
     }
 
     update() {
@@ -378,11 +378,12 @@ class Timer extends GameObject {
         this.sprite.x = 100;
         this.scene.addChild(this.sprite);
         this.counter = new Counter(msToFrame(6000));
+        $effects.push(this);
     }
 
     update() {
         this.counter.count();
-        this.sprite.text = "Time:  " + Math.round(this.counter.frame / FPS);
+        this.sprite.text = "Time:  " + Math.ceil(this.counter.frame / FPS);
     }
 }
 
