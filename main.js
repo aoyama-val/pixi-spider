@@ -260,10 +260,9 @@ class Canon {
     }
 }
 
-class Spider {
+class Spider extends GameObject {
     constructor(scene) {
-        this.scene = scene;
-        this.alive = true;
+        super(scene);
 
         var sprite = new PIXI.Sprite(PIXI.loader.resources[IMG_SPIDER].texture);
         sprite.anchor.x = 0.5;
@@ -299,16 +298,7 @@ class Spider {
         if (this.changeSpeedCounter.isFinished()) {
             this.changeSpeed();
         }
-        if (!this.isAlive())
-            this.scene.removeChild(this.sprite);
-    }
-
-    isAlive() {
-        return this.alive;
-    }
-
-    die() {
-        this.alive = false;
+        super.update();
     }
 }
 
