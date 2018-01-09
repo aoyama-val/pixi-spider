@@ -190,11 +190,27 @@ class StartScene extends IScene {
         text.anchor.set(0.5);
         text.position.set(SCREEN_W / 2, SCREEN_H / 2);
         this.container.addChild(text);
+
+        var timer = new Timer(this);
+        var score = new Score(this);
+        var canon = new Canon(this);
+
+        this.spiders = [];
+
+        for (var i = 0; i < randomInt(4, 6); i++) {
+            this.spiders.push(new Spider(this));
+        }
     }
 
     onClick() {
         console.log("onClick");
         this.mgr.changeScene(new GameScene(this.mgr));
+    }
+
+    update() {
+        this.spiders.forEach(function(x) {
+            x.update();
+        });
     }
 }
 
@@ -307,9 +323,29 @@ class GameOverScene extends IScene {
 
     update() {
         console.log("asdad");
-        this.canRetryCounter.count();
-        if (this.canRetryCounter.isFinished()) {
-            this.canRetry = true;
+        if (this.canRetryCounter) {
+            this.canRetryCounter.count();
+            if (this.canRetryCounter.isFinished()) {
+                this.canRetry = true;
+                this.canRetryCounter = null;
+
+                let style = new PIXI.TextStyle({
+                                        fontFamily: "Arial",
+                                        fontSize: 20,
+                                        fill: "white",
+                                        stroke: '#ff3300',
+                                        strokeThickness: 4,
+                                        dropShadow: true,
+                                        dropShadowColor: "#000000",
+                                        dropShadowBlur: 4,
+                                        dropShadowAngle: Math.PI / 6,
+                                        dropShadowDistance: 6,
+                });
+                var sprite = new PIXI.Text("Click to retry", style);
+                sprite.x = SCREEN_W - 150;
+                sprite.y = SCREEN_H - 30;
+                this.container.addChild(sprite);
+            }
         }
     }
 }
@@ -318,15 +354,6 @@ function setup() {
     $sceneMgr = new SceneManager($app)
 
     $sceneMgr.changeScene(new StartScene($sceneMgr));
-
-    /*
-    $gameOverScene = new PIXI.Container();
-
-
-
-
-
-    */
 
     $app.ticker.add(delta => gameLoop(delta));
 
@@ -495,7 +522,7 @@ class Score extends IGameObject {
     constructor(scene) {
         super(scene);
         this.score = 0;
-        this.displayingScore = -1;
+        this.displayingScore = 0;
 
         let style = new PIXI.TextStyle({
                                 fontFamily: "Arial",
@@ -509,14 +536,14 @@ class Score extends IGameObject {
                                 dropShadowAngle: Math.PI / 6,
                                 dropShadowDistance: 6,
         });
-        this.sprite = new PIXI.Text("Score", style);
+        this.sprite = new PIXI.Text("Score  0", style);
         this.scene.container.addChild(this.sprite);
         $effects.push(this);
     }
 
     update() {
         if (this.displayingScore < this.score) {
-            this.displayingScore += 1;
+            this.displayingScore += 2;
             this.sprite.text = "Score:  " + this.displayingScore;
         }
         super.update();
@@ -538,7 +565,7 @@ class Timer extends IGameObject {
                                 dropShadowAngle: Math.PI / 6,
                                 dropShadowDistance: 6,
         });
-        this.sprite = new PIXI.Text("Time: ", style);
+        this.sprite = new PIXI.Text("Time  ", style);
         this.sprite.x = 200;
         this.scene.container.addChild(this.sprite);
         this.counter = new Counter(msToFrame($params.timeLimit));
@@ -547,7 +574,7 @@ class Timer extends IGameObject {
 
     update() {
         this.counter.count();
-        this.sprite.text = "Time:  " + Math.ceil(this.counter.frame / FPS);
+        this.sprite.text = "Time  " + Math.ceil(this.counter.frame / FPS);
         if (this.counter.isFinished()) {
             console.log("isFinished");
              this.scene.mgr.pushScene(new GameOverScene(this.scene.mgr));
