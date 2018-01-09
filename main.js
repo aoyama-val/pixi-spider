@@ -5,7 +5,9 @@
 //  - 解像度
 //
 //  やっぱり配列へのpushはコンストラクタの中ではなく、呼び出し側でやる方がよかった
+//
 //  スタート、ゲーム、エンドは同一シーンで、変数でswitchする方がよかった（共通するデータが多いため）
+//  いや、やっぱりシーンを分けて共通部分を関数などでくくりだすのがよさそう。
 
 "use strict";
 
@@ -120,7 +122,7 @@ function main() {
 function setup() {
     $sceneMgr = new SceneManager($app)
 
-    $sceneMgr.changeScene(new StartScene($sceneMgr));
+    $sceneMgr.changeScene(new StartScene());
 
     $app.ticker.add(delta => gameLoop(delta));
 
@@ -205,12 +207,7 @@ class SceneManager {
 }
 
 class IScene {
-    constructor(mgr) {
-        if (!mgr) {
-            alert("mgr is null");
-            throw "mgr is null";
-        }
-        this.mgr = mgr;
+    constructor() {
         this.container = new PIXI.Container();
     }
 
@@ -225,8 +222,8 @@ class IScene {
 }
 
 class StartScene extends IScene {
-    constructor(mgr) {
-        super(mgr);
+    constructor() {
+        super();
 
         var text = createText("Click to start", SCREEN_W / 2, SCREEN_H / 2, 40, "#ff3300");
         this.container.addChild(text);
@@ -244,7 +241,7 @@ class StartScene extends IScene {
     }
 
     onClick() {
-        this.mgr.changeScene(new GameScene(this.mgr));
+        $sceneMgr.changeScene(new GameScene());
     }
 
     update() {
@@ -255,8 +252,8 @@ class StartScene extends IScene {
 }
 
 class GameScene extends IScene {
-    constructor(mgr) {
-        super(mgr);
+    constructor() {
+        super();
 
         this.spiders = [];
         this.bullets = [];
@@ -326,8 +323,8 @@ class GameScene extends IScene {
 }
 
 class GameOverScene extends IScene {
-    constructor(mgr) {
-        super(mgr);
+    constructor() {
+        super();
 
         var gameOverText = createText("GAME OVER", SCREEN_W / 2, SCREEN_H / 2, 40, "#ff3300");
         this.container.addChild(gameOverText);
@@ -338,7 +335,7 @@ class GameOverScene extends IScene {
 
     onClick() {
         if (this.canRetry) {
-            this.mgr.changeScene(new GameScene(this.mgr));
+            $sceneMgr.changeScene(new GameScene());
         }
     }
 
@@ -518,7 +515,7 @@ class Timer extends IGameObject {
         this.counter.count();
         this.sprite.text = "Time  " + Math.ceil(this.counter.frame / FPS);
         if (this.counter.isFinished()) {
-             this.scene.mgr.pushScene(new GameOverScene(this.scene.mgr));
+             $sceneMgr.pushScene(new GameOverScene());
         }
     }
 }
