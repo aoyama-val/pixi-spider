@@ -28,14 +28,17 @@ var $app;               // PIXI.Application
 var $gameScene;         // PIXI.Container
 var $mouseX = -1;
 
+var $score;
 var $canon;
 var $spiders = [];
 var $spiderSpawnCounter;
 var $bullets = [];
+var $objects = [];
 
 var $params = {
     bullet_speed: 9.0,
-    max_spiders: 2,
+    max_spiders: 10,
+    max_bullets: 3,
     spider_speed_max: 4.0,
     spider_spawn_counter: 2000, // ms
 };
@@ -106,8 +109,7 @@ function main() {
     }
     PIXI.utils.sayHello(type);
 
-    $app = new PIXI.Application({width: SCREEN_W, height: SCREEN_H});
-    $app.renderer.backgroundColor = 0xffffff;
+    $app = new PIXI.Application({width: SCREEN_W, height: SCREEN_H, backgroundColor: 0xffffff});
     document.body.appendChild($app.view);
 
     PIXI.loader
@@ -126,25 +128,13 @@ function setup() {
     $canon = new Canon();
     $gameScene.addChild($canon.sprite);
 
-    // add text
-    let style = new PIXI.TextStyle({
-                              fontFamily: "Arial",
-                              fontSize: 36,
-                              fill: "white",
-                              stroke: '#ff3300',
-                              strokeThickness: 4,
-                              dropShadow: true,
-                              dropShadowColor: "#000000",
-                              dropShadowBlur: 4,
-                              dropShadowAngle: Math.PI / 6,
-                              dropShadowDistance: 6,
-    });
-    let message = new PIXI.Text("Hello Pixi!", style);
-    $gameScene.addChild(message);
-
     $spiderSpawnCounter = new Counter(msToFrame($params.spider_spawn_counter));
 
     $app.ticker.add(delta => gameLoop(delta));
+
+    $score = new Score();
+    $objects.push($score);
+    $gameScene.addChild($score.sprite);
 
     window.addEventListener("mousemove", onMouseMove, false);
     window.addEventListener("click", onClick, false);
@@ -175,13 +165,18 @@ function gameLoop(delta) {
                                  s.sprite.width,
                                  s.sprite.height)) {
                 console.log("collide");
-                s.alive = false;
+                var img = new Effect(IMG_CRASH, s.sprite.x, s.sprite.y, 40, 40, msToFrame(700));
+                $objects.push(img);
+                $gameScene.addChild(img.sprite);
+                s.die();
+                $score.score += 100 * Math.sqrt(s.speed);
             }
         });
     });
 
     $spiders = doAction($spiders);
     $bullets = doAction($bullets);
+    $objects = doAction($objects);
 }
 
 function doAction(objects) {
@@ -207,14 +202,16 @@ function onMouseMove(e) {
 
 function onClick() {
     console.log("click");
-    var bullet = new Bullet();
-    bullet.sprite.x = $canon.sprite.x;
-    bullet.sprite.y = $canon.sprite.y;
-    var v = $params.bullet_speed;
-    bullet.sprite.vx = v * -Math.cos(deg2rad($canon.angle + 90));
-    bullet.sprite.vy = v * -Math.sin(deg2rad($canon.angle + 90));
-    $gameScene.addChild(bullet.sprite);
-    $bullets.push(bullet);
+    if ($bullets.length < $params.max_bullets) {
+        var bullet = new Bullet();
+        bullet.sprite.x = $canon.sprite.x;
+        bullet.sprite.y = $canon.sprite.y;
+        var v = $params.bullet_speed;
+        bullet.sprite.vx = v * -Math.cos(deg2rad($canon.angle + 90));
+        bullet.sprite.vy = v * -Math.sin(deg2rad($canon.angle + 90));
+        $gameScene.addChild(bullet.sprite);
+        $bullets.push(bullet);
+    }
 }
 
 //=============================================================================
@@ -257,6 +254,7 @@ class Spider {
         sprite.x = (Math.random() * SCREEN_W);
         sprite.y = (Math.random() * SCREEN_H);
         this.sprite = sprite;
+        this.speed = 0;
 
         this.changeSpeed();
     }
@@ -265,6 +263,7 @@ class Spider {
         this.changeSpeedCounter = new Counter(randomInt(msToFrame(1000), msToFrame(2000)));
         var v = Math.random() * $params.spider_speed_max;
         var angle = Math.random() * 2 * Math.PI;
+        this.speed = v;
         this.sprite.vx = v * Math.cos(angle);
         this.sprite.vy = v * Math.sin(angle);
     }
@@ -285,6 +284,10 @@ class Spider {
 
     isAlive() {
         return this.alive;
+    }
+
+    die() {
+        this.alive = false;
     }
 }
 
@@ -307,10 +310,88 @@ class Bullet {
         if (this.sprite.x < 0 || this.sprite.x > SCREEN_W || this.sprite.y < 0 || this.sprite.SCREEN_H) {
             this.alive = false;
         }
+        this.sprite.rotation += 0.5;
     }
 
     isAlive() {
         return this.alive;
+    }
+
+    die() {
+        this.alive = false;
+    }
+}
+
+class Score {
+    constructor() {
+        this.alive = true;
+        this.score = 0;
+        this.displayingScore = -1;
+
+        let style = new PIXI.TextStyle({
+                                fontFamily: "Arial",
+                                fontSize: 20,
+                                fill: "white",
+                                stroke: '#ff3300',
+                                strokeThickness: 4,
+                                dropShadow: true,
+                                dropShadowColor: "#000000",
+                                dropShadowBlur: 4,
+                                dropShadowAngle: Math.PI / 6,
+                                dropShadowDistance: 6,
+        });
+        this.sprite = new PIXI.Text("Score", style);
+    }
+
+    action() {
+        if (this.displayingScore < this.score) {
+            this.displayingScore += 1;
+            this.sprite.text = "Score:  " + this.displayingScore;
+        }
+    }
+
+    isAlive() {
+        return this.alive;
+    }
+
+    die() {
+        this.alive = false;
+    }
+}
+
+class Effect {
+    constructor(resource_key, x, y, w, h, frame) {
+        this.resource_key = resource_key;
+        this.alive = true;
+        if (frame >= 0) {
+            this.counter = new Counter(frame);
+        }
+
+        var sprite = new PIXI.Sprite(PIXI.loader.resources[this.resource_key].texture);
+        sprite.anchor.x = 0.5;
+        sprite.anchor.y = 0.5;
+        sprite.width = w;
+        sprite.height = h;
+        sprite.x = x;
+        sprite.y = y;
+        this.sprite = sprite;
+    }
+
+    action() {
+        if (this.counter) {
+            this.counter.count();
+            if (this.counter.isFinished()) {
+                this.die();
+            }
+        }
+    }
+
+    isAlive() {
+        return this.alive;
+    }
+
+    die() {
+        this.alive = false;
     }
 }
 
