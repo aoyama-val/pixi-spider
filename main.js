@@ -26,12 +26,13 @@ var $app;               // PIXI.Application
 var $gameScene;         // PIXI.Container
 var $mouseX = -1;
 
+var $timer;
 var $score;
 var $canon;
 var $spiders = [];
 var $spiderSpawnCounter;
 var $bullets = [];
-var $objects = [];
+var $effects = [];
 
 var $params = {
     bullet_speed: 9.0,
@@ -128,11 +129,13 @@ function setup() {
 
     $spiderSpawnCounter = new Counter(msToFrame($params.spider_spawn_counter));
 
+    $timer = new Timer($gameScene);
+    $effects.push($timer);
+
     $app.ticker.add(delta => gameLoop(delta));
 
     $score = new Score($gameScene);
-    $objects.push($score);
-    $gameScene.addChild($score.sprite);
+    $effects.push($score);
 
     window.addEventListener("mousemove", onMouseMove, false);
     window.addEventListener("click", onClick, false);
@@ -164,7 +167,7 @@ function gameLoop(delta) {
                                  s.sprite.height)) {
                 console.log("collide");
                 var img = new Effect($gameScene, IMG_CRASH, s.sprite.x, s.sprite.y, 40, 40, msToFrame(700));
-                $objects.push(img);
+                $effects.push(img);
                 s.die();
                 $score.score += 100 * Math.sqrt(s.speed);
             }
@@ -173,7 +176,7 @@ function gameLoop(delta) {
 
     $spiders = doUpdate($spiders);
     $bullets = doUpdate($bullets);
-    $objects = doUpdate($objects);
+    $effects = doUpdate($effects);
 }
 
 function doUpdate(objects) {
@@ -325,9 +328,9 @@ class Bullet extends GameObject {
     }
 }
 
-class Score {
-    constructor() {
-        this.alive = true;
+class Score extends GameObject {
+    constructor(scene) {
+        super(scene);
         this.score = 0;
         this.displayingScore = -1;
 
@@ -344,6 +347,7 @@ class Score {
                                 dropShadowDistance: 6,
         });
         this.sprite = new PIXI.Text("Score", style);
+        this.scene.addChild(this.sprite);
     }
 
     update() {
@@ -351,23 +355,42 @@ class Score {
             this.displayingScore += 1;
             this.sprite.text = "Score:  " + this.displayingScore;
         }
-    }
-
-    isAlive() {
-        return this.alive;
-    }
-
-    die() {
-        this.alive = false;
+        super.update();
     }
 }
 
-class Effect {
+class Timer extends GameObject {
+    constructor(scene) {
+        super(scene);
+        let style = new PIXI.TextStyle({
+                                fontFamily: "Arial",
+                                fontSize: 20,
+                                fill: "white",
+                                stroke: '#0033ff',
+                                strokeThickness: 4,
+                                dropShadow: true,
+                                dropShadowColor: "#000000",
+                                dropShadowBlur: 4,
+                                dropShadowAngle: Math.PI / 6,
+                                dropShadowDistance: 6,
+        });
+        this.sprite = new PIXI.Text("Time: ", style);
+        this.sprite.x = 100;
+        this.scene.addChild(this.sprite);
+        this.counter = new Counter(msToFrame(6000));
+    }
+
+    update() {
+        this.counter.count();
+        this.sprite.text = "Time:  " + Math.round(this.counter.frame / FPS);
+    }
+}
+
+class Effect extends GameObject {
     constructor(scene, resource_key, x, y, w, h, frame) {
-        this.scene = scene;
+        super(scene);
         this.resource_key = resource_key;
         
-        this.alive = true;
         if (frame >= 0) {
             this.counter = new Counter(frame);
         }
@@ -391,16 +414,7 @@ class Effect {
                 this.die();
             }
         }
-        if (!this.isAlive())
-            this.scene.removeChild(this.sprite);
-    }
-
-    isAlive() {
-        return this.alive;
-    }
-
-    die() {
-        this.alive = false;
+        super.update();
     }
 }
 
