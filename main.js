@@ -221,7 +221,8 @@ class GameObject {
 
     update() {
         if (this.sprite && !this.isAlive()) {
-            scene.removeChild(this.sprite);
+            console.log("remove object");
+            this.scene.removeChild(this.sprite);
         }
     }
 
@@ -311,11 +312,9 @@ class Spider {
     }
 }
 
-class Bullet {
+class Bullet extends GameObject {
     constructor(scene) {
-        this.scene = scene;
-        this.alive = true;
-
+        super(scene);
         var sprite = new PIXI.Sprite(PIXI.loader.resources[IMG_BULLET].texture);
         sprite.anchor.x = 0.5;
         sprite.anchor.y = 0.5;
@@ -332,18 +331,7 @@ class Bullet {
             console.log("die");
         }
         this.sprite.rotation += 0.5;
-        if (!this.isAlive()) {
-            console.log("clear");
-            this.scene.removeChild(this.sprite);
-        }
-    }
-
-    isAlive() {
-        return this.alive;
-    }
-
-    die() {
-        this.alive = false;
+        super.update();
     }
 }
 
