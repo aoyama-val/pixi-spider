@@ -146,8 +146,8 @@ function gameLoop(delta) {
         $spiderSpawnCounter.reset();
     }
 
-    doAction($spiders);
-    doAction($bullets);
+    $spiders = doAction($spiders);
+    $bullets = doAction($bullets);
 }
 
 function doAction(objects) {
@@ -156,12 +156,7 @@ function doAction(objects) {
         if (!x.isAlive())
             $gameScene.removeChild(x.sprite);
     });
-    // 死んだオブジェクトを配列から削除する
-    for (var i = 0; i < objects.length; i++) {
-        if (objects[i] && !objects[i].isAlive()) {
-            delete objects[i];
-        }
-    }
+    return objects.filter(function(x) { return x.isAlive(); });
 }
 
 function onMouseMove(e) {
