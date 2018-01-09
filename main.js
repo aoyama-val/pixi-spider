@@ -1,5 +1,6 @@
 // TODO
 // - 時間制限1分。リトライ可能にする
+// - シーンをスタックで表す
 // - モバイル対応
 //  - タップとスワイプ対応
 //  - 解像度
@@ -24,6 +25,8 @@ const IMG_SPIDER = "img/spider.png";
 //=============================================================================
 var $app;               // PIXI.Application
 var $gameScene;         // PIXI.Container
+var $startScene;
+var $gameOverScene;
 var $mouseX = -1;
 
 var $timer;
@@ -54,6 +57,8 @@ class Counter {
 
     count() {
         this.frame -= 1;
+        if (this.frame < 0)
+            this.frame = 0;
     }
 
     reset() {
@@ -119,13 +124,93 @@ function main() {
         .load(setup);
 }
 
+class SceneManager {
+    constructor() {
+        this.scenes = []
+    }
+
+    changeScene(scene) {
+        this.scenes = [scene]
+    }
+
+    pushScene(scene) {
+        this.scenes.push(scene)
+    }
+
+    popScene(scene) {
+        this.scenes.pop();
+    }
+}
+
+class IScene {
+    constructor(mgr) {
+        this.mgr = mgr;
+        this.container = new PIXI.Container();
+    }
+
+    update() {
+    }
+
+    onClick() {
+    }
+}
+
+class StartScene extends IScene {
+    constructor() {
+        super()
+
+        var text = new PIXI.Text("Click to start", {
+                                fontFamily: "Arial",
+                                fontSize: 40,
+                                fill: "white",
+                                stroke: '#ff3300',
+                                strokeThickness: 4,
+                                dropShadow: true,
+                                dropShadowColor: "#000000",
+                                dropShadowBlur: 4,
+                                dropShadowAngle: Math.PI / 6,
+                                dropShadowDistance: 6,
+        });
+        text.anchor.set(0.5);
+        text.position.set(SCREEN_W / 2, SCREEN_H / 2);
+        this.container.addChild(text);
+    }
+
+    onClick() {
+        this.mgr.changeScene(new GameScene());
+    }
+}
+
+class GameScene {
+}
+
 function setup() {
     $gameScene = new PIXI.Container();
     $app.stage.addChild($gameScene);
 
-    // add canon
+    $scenes.changeScene(new StartScene());
+
+    $gameOverScene = new PIXI.Container();
+    let style = new PIXI.TextStyle({
+                            fontFamily: "Arial",
+                            fontSize: 40,
+                            fill: "white",
+                            stroke: '#ff3300',
+                            strokeThickness: 4,
+                            dropShadow: true,
+                            dropShadowColor: "#000000",
+                            dropShadowBlur: 4,
+                            dropShadowAngle: Math.PI / 6,
+                            dropShadowDistance: 6,
+    });
+    var gameOverText = new PIXI.Text("GAME OVER", style);
+    gameOverText.anchor.x = 0.5
+    gameOverText.anchor.y = 0.5
+    gameOverText.x = SCREEN_W / 2
+    gameOverText.y = SCREEN_H / 2
+    $gameOverScene.addChild(gameOverText);
+
     $canon = new Canon($gameScene);
-    $gameScene.addChild($canon.sprite);
 
     $spiderSpawnCounter = new Counter(msToFrame($params.spider_spawn_counter));
 
@@ -182,20 +267,31 @@ function doUpdate(objects) {
     return objects.filter(function(x) { return x.isAlive(); });
 }
 
+function isPlaying() {
+    return true;
+}
+
 function onMouseMove(e) {
     var x = e.clientX;
-    if ($mouseX == -1) {
-        $mouseX = x;
-        return;
-    }
-    var dx = x - $mouseX;
-    $canon.rotateByDx(dx);
+    if (isPlaying()) {
+        if ($mouseX == -1) {
+            $mouseX = x;
+            return;
+        }
+        var dx = x - $mouseX;
+        $canon.rotateByDx(dx);
 
-    $mouseX = x;
+        $mouseX = x;
+    }
 }
 
 function onClick() {
     console.log("click");
+    if ($scenes.length > 0) {
+        var scene = $scenes[$scenes.length - 1];
+        scene.onClick();
+    }
+    /*
     if ($bullets.length < $params.max_bullets) {
         var bullet = new Bullet($gameScene);
         bullet.sprite.x = $canon.sprite.x;
@@ -206,6 +302,7 @@ function onClick() {
         $gameScene.addChild(bullet.sprite);
         $bullets.push(bullet);
     }
+    */
 }
 
 //=============================================================================
@@ -250,6 +347,7 @@ class Canon {
 
         this.angle = 0;
         this.rotateByDx(0);
+        this.scene.addChild(this.sprite);
     }
 
     rotateByDx(dx) {
@@ -384,6 +482,10 @@ class Timer extends GameObject {
     update() {
         this.counter.count();
         this.sprite.text = "Time:  " + Math.ceil(this.counter.frame / FPS);
+        if (this.counter.isFinished()) {
+            $currentScene = $gameOverScene;
+            $app.stage.addChild($gameOverScene);
+        }
     }
 }
 
