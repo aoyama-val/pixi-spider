@@ -1,5 +1,4 @@
 // TODO
-// - 時間制限1分。リトライ可能にする
 // シーンマネージャをグローバル変数にする
 // - モバイル対応
 //  - タップとスワイプ対応
@@ -36,12 +35,12 @@ var $bullets = [];
 var $effects = [];
 
 var $params = {
-    bullet_speed: 9.0,
-    max_spiders: 10,
-    max_bullets: 3,
-    spider_speed_max: 4.0,
-    spider_spawn_counter: 2000, // ms
-    timeLimit: 30000,   // ms
+    bulletSpeed: 9.0,
+    maxSpiders: 10,
+    maxBullets: 3,
+    spiderSpeedMax: 4.0,
+    spiderSpawnInterval: 2000, // ms
+    timeLimit: 60000,   // ms
 };
 
 
@@ -222,7 +221,7 @@ class GameScene extends IScene {
         $score = new Score(this);
         $canon = new Canon(this);
         $spiders = [];
-        $spiderSpawnCounter = new Counter(msToFrame($params.spider_spawn_counter));
+        $spiderSpawnCounter = new Counter(msToFrame($params.spiderSpawnInterval));
         $bullets = [];
         $effects = [];
     }
@@ -231,7 +230,7 @@ class GameScene extends IScene {
         var that = this;
         $spiderSpawnCounter.count();
         if ($spiderSpawnCounter.isFinished()) {
-            if ($spiders.length < $params.max_spiders) {
+            if ($spiders.length < $params.maxSpiders) {
                 var spider = new Spider(this);
             }
 
@@ -269,7 +268,7 @@ class GameScene extends IScene {
     onClick() {
         console.log("onClick");
 
-        if ($bullets.length < $params.max_bullets) {
+        if ($bullets.length < $params.maxBullets) {
             var bullet = new Bullet(this, $canon.sprite.x, $canon.sprite.y, $canon.angle);
         }
     }
@@ -322,7 +321,6 @@ class GameOverScene extends IScene {
     }
 
     update() {
-        console.log("asdad");
         if (this.canRetryCounter) {
             this.canRetryCounter.count();
             if (this.canRetryCounter.isFinished()) {
@@ -464,7 +462,7 @@ class Spider extends IGameObject {
 
     changeSpeed() {
         this.changeSpeedCounter = new Counter(randomInt(msToFrame(1000), msToFrame(2000)));
-        var v = Math.random() * $params.spider_speed_max;
+        var v = Math.random() * $params.spiderSpeedMax;
         var angle = Math.random() * 2 * Math.PI;
         this.speed = v;
         this.sprite.vx = v * Math.cos(angle);
@@ -497,7 +495,7 @@ class Bullet extends IGameObject {
         sprite.height = 40;
         sprite.x = x;
         sprite.y = y;
-        var v = $params.bullet_speed;
+        var v = $params.bulletSpeed;
         sprite.vx = v * -Math.cos(deg2rad(angle + 90));
         sprite.vy = v * -Math.sin(deg2rad(angle + 90));
         this.sprite = sprite;
