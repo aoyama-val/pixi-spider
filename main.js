@@ -1,3 +1,5 @@
+"use strict";
+
 //=============================================================================
 //   定数
 //=============================================================================
@@ -21,6 +23,7 @@ var $mouseX = -1;
 var $canon;
 var $spiders = [];
 var $spiderSpawnCounter;
+var $bullets = [];
 
 
 //=============================================================================
@@ -59,6 +62,23 @@ function randomInt(min, max) {
     return min + Math.floor(Math.random() * (max - min + 1));
 }
 
+function deg2rad(deg) {
+  return deg / 180.0 * Math.PI;
+}
+
+function distance(p1, p2) {
+  var dx = p1[0] - p2[0];
+  var dy = p1[1] - p2[1];
+  var dist = Math.sqrt(dx * dx + dy * dy);
+  return dist;
+}
+
+function hitTestRectangle(x1, y1, w1, h1, x2, y2, w2, h2) {
+    return (x1 < x2 + w2 &&
+            x2 < x1 + w1 &&
+            y1 < y2 + h2 &&
+            y2 < y1 + h1 );
+}
 
 
 //=============================================================================
@@ -105,13 +125,14 @@ function setup() {
                               dropShadowDistance: 6,
     });
     let message = new PIXI.Text("Hello Pixi!", style);
-    $app.stage.addChild(message);
+    $gameScene.addChild(message);
 
-    $spiderSpawnCounter = new Counter(msToFrame(1000));
+    $spiderSpawnCounter = new Counter(msToFrame(2000));
 
     $app.ticker.add(delta => gameLoop(delta));
 
     window.addEventListener("mousemove", onMouseMove, false);
+    window.addEventListener("click", onClick, false);
 }
 
 function gameLoop(delta) {
@@ -119,14 +140,28 @@ function gameLoop(delta) {
     if ($spiderSpawnCounter.isFinished()) {
         // add spider
         var spider = new Spider();
-        $app.stage.addChild(spider.sprite);
+        $gameScene.addChild(spider.sprite);
         $spiders.push(spider);
 
         $spiderSpawnCounter.reset();
     }
-    $spiders.forEach(function(s) {
-        s.action();
+
+    doAction($spiders);
+    doAction($bullets);
+}
+
+function doAction(objects) {
+    objects.forEach(function(x) {
+        x.action();
+        if (!x.isAlive())
+            $gameScene.removeChild(x.sprite);
     });
+    // 死んだオブジェクトを配列から削除する
+    for (var i = 0; i < objects.length; i++) {
+        if (objects[i] && !objects[i].isAlive()) {
+            delete objects[i];
+        }
+    }
 }
 
 function onMouseMove(e) {
@@ -141,20 +176,33 @@ function onMouseMove(e) {
     $mouseX = x;
 }
 
+function onClick() {
+    console.log("click");
+    var bullet = new Bullet();
+    bullet.sprite.x = $canon.sprite.x;
+    bullet.sprite.y = $canon.sprite.y;
+    var v = 9;
+    bullet.sprite.vx = v * -Math.cos(deg2rad($canon.angle + 90));
+    bullet.sprite.vy = v * -Math.sin(deg2rad($canon.angle + 90));
+    $gameScene.addChild(bullet.sprite);
+    $bullets.push(bullet);
+}
+
 //=============================================================================
 //   ゲームオブジェクト
 //=============================================================================
 class Canon {
     constructor() {
-        let canonSprite = new PIXI.Sprite(PIXI.loader.resources[IMG_CANON].texture);
-        canonSprite.width = 70;
-        canonSprite.height = 70;
-        canonSprite.x = (SCREEN_W / 2) - 17;
-        canonSprite.y = SCREEN_H - 35;
-        canonSprite.rotation = 0.5;
-        canonSprite.anchor.x = 0.5;
-        canonSprite.anchor.y = 0.5;
-        this.sprite = canonSprite;
+        let sprite = new PIXI.Sprite(PIXI.loader.resources[IMG_CANON].texture);
+        sprite.width = 70;
+        sprite.height = 70;
+        sprite.x = (SCREEN_W / 2);
+        sprite.y = SCREEN_H - 30;
+        // rotationは原点を回転の中心とするので、真ん中を原点としておく。
+        // 統一のため、他の全オブジェクトも同様に真ん中を原点にする。
+        sprite.anchor.x = 0.5;
+        sprite.anchor.y = 0.5;
+        this.sprite = sprite;
 
         this.angle = 0;
         this.rotateByDx(0);
@@ -170,9 +218,11 @@ class Canon {
 
 class Spider {
     constructor() {
-        this.frame = 0;
+        this.alive = true;
 
         var sprite = new PIXI.Sprite(PIXI.loader.resources[IMG_SPIDER].texture);
+        sprite.anchor.x = 0.5;
+        sprite.anchor.y = 0.5;
         sprite.width = 40;
         sprite.height = 40;
         sprite.x = (Math.random() * SCREEN_W);
@@ -202,6 +252,36 @@ class Spider {
         if (this.changeSpeedCounter.isFinished()) {
             this.changeSpeed();
         }
+    }
+
+    isAlive() {
+        return this.alive;
+    }
+}
+
+class Bullet {
+    constructor() {
+        this.alive = true;
+
+        var sprite = new PIXI.Sprite(PIXI.loader.resources[IMG_BULLET].texture);
+        sprite.anchor.x = 0.5;
+        sprite.anchor.y = 0.5;
+        sprite.width = 40;
+        sprite.height = 40;
+        this.sprite = sprite;
+
+    }
+
+    action() {
+        this.sprite.x += this.sprite.vx;
+        this.sprite.y += this.sprite.vy;
+        if (this.sprite.x < 0 || this.sprite.x > SCREEN_W || this.sprite.y < 0 || this.sprite.SCREEN_H) {
+            this.alive = false;
+        }
+    }
+
+    isAlive() {
+        return this.alive;
     }
 }
 
