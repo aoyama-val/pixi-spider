@@ -3,6 +3,9 @@
 // - モバイル対応
 //  - タップとスワイプ対応
 //  - 解像度
+//
+//  やっぱり配列へのpushはコンストラクタの中ではなく、呼び出し側でやる方がよかった
+//  スタート、ゲーム、エンドは同一シーンで、変数でswitchする方がよかった（共通するデータが多いため）
 
 "use strict";
 
@@ -25,14 +28,6 @@ const IMG_SPIDER = "img/spider.png";
 var $app;               // PIXI.Application
 var $sceneMgr;
 var $mouseX = -1;
-
-var $timer;
-var $score;
-var $canon;
-var $spiders = [];
-var $spiderSpawnCounter;
-var $bullets = [];
-var $effects = [];
 
 var $params = {
     bulletSpeed: 9.0,
@@ -236,11 +231,12 @@ class StartScene extends IScene {
         var text = createText("Click to start", SCREEN_W / 2, SCREEN_H / 2, 40, "#ff3300");
         this.container.addChild(text);
 
+        this.spiders = [];
+        this.effects = [];
+
         var timer = new Timer(this);
         var score = new Score(this);
         var canon = new Canon(this);
-
-        this.spiders = [];
 
         for (var i = 0; i < randomInt(4, 6); i++) {
             this.spiders.push(new Spider(this));
@@ -262,28 +258,29 @@ class GameScene extends IScene {
     constructor(mgr) {
         super(mgr);
 
-        $timer = new Timer(this);
-        $score = new Score(this);
-        $canon = new Canon(this);
-        $spiders = [];
-        $spiderSpawnCounter = new Counter(msToFrame($params.spiderSpawnInterval));
-        $bullets = [];
-        $effects = [];
+        this.spiders = [];
+        this.bullets = [];
+        this.effects = [];
+
+        this.timer = new Timer(this);
+        this.score = new Score(this);
+        this.canon = new Canon(this);
+        this.spiderSpawnCounter = new Counter(msToFrame($params.spiderSpawnInterval));
     }
 
     update() {
         var that = this;
-        $spiderSpawnCounter.count();
-        if ($spiderSpawnCounter.isFinished()) {
-            if ($spiders.length < $params.maxSpiders) {
+        this.spiderSpawnCounter.count();
+        if (this.spiderSpawnCounter.isFinished()) {
+            if (this.spiders.length < $params.maxSpiders) {
                 var spider = new Spider(this);
             }
 
-            $spiderSpawnCounter.reset();
+            this.spiderSpawnCounter.reset();
         }
 
-        $bullets.forEach(function(b) {
-            $spiders.forEach(function(s) {
+        that.bullets.forEach(function(b) {
+            that.spiders.forEach(function(s) {
                 if (hitTestRectangle(
                                     b.sprite.x - b.sprite.width / 2, 
                                     b.sprite.y - b.sprite.height / 2, 
@@ -294,24 +291,24 @@ class GameScene extends IScene {
                                     s.sprite.width,
                                     s.sprite.height)) {
                     var img = new Effect(that, IMG_CRASH, s.sprite.x, s.sprite.y, 40, 40, msToFrame(700));
-                    $effects.push(img);
+                    that.effects.push(img);
                     s.die();
-                    $score.score += 100 * Math.sqrt(s.speed);
+                    that.score.score += 100 * Math.sqrt(s.speed);
                 }
             });
         });
 
-        $spiders = doUpdate($spiders);
-        $bullets = doUpdate($bullets);
-        $effects = doUpdate($effects);
+        this.spiders = doUpdate(this.spiders);
+        this.bullets = doUpdate(this.bullets);
+        this.effects = doUpdate(this.effects);
 
-        $score.update();
-        $timer.update();
+        this.score.update();
+        this.timer.update();
     }
 
     onClick() {
-        if ($bullets.length < $params.maxBullets) {
-            var bullet = new Bullet(this, $canon.sprite.x, $canon.sprite.y, $canon.angle);
+        if (this.bullets.length < $params.maxBullets) {
+            var bullet = new Bullet(this, this.canon.sprite.x, this.canon.sprite.y, this.canon.angle);
         }
     }
 
@@ -322,7 +319,7 @@ class GameScene extends IScene {
             return;
         }
         var dx = x - $mouseX;
-        $canon.rotateByDx(dx);
+        this.canon.rotateByDx(dx);
 
         $mouseX = x;
     }
@@ -428,7 +425,7 @@ class Spider extends IGameObject {
         this.changeSpeed();
 
         this.scene.container.addChild(this.sprite);
-        $spiders.push(this);
+        this.scene.spiders.push(this);
     }
 
     changeSpeed() {
@@ -472,7 +469,7 @@ class Bullet extends IGameObject {
         this.sprite = sprite;
 
         scene.container.addChild(this.sprite);
-        $bullets.push(this);
+        this.scene.bullets.push(this);
     }
 
     update() {
@@ -495,7 +492,7 @@ class Score extends IGameObject {
         this.sprite = createText("Score  0", 0, 0, 20, "#ff3300");
         this.sprite.anchor.set(0);
         this.scene.container.addChild(this.sprite);
-        $effects.push(this);
+        this.scene.effects.push(this);
     }
 
     update() {
@@ -514,7 +511,7 @@ class Timer extends IGameObject {
         this.sprite.anchor.set(0);
         this.scene.container.addChild(this.sprite);
         this.counter = new Counter(msToFrame($params.timeLimit));
-        $effects.push(this);
+        this.scene.effects.push(this);
     }
 
     update() {
