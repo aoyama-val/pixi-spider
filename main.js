@@ -1,7 +1,7 @@
 //=============================================================================
 //   定数
 //=============================================================================
-FPS         = 60
+FPS         = 60        // 基本的にPixiJSでは60FPS固定らしい
 SCREEN_W    = 800
 SCREEN_H    = 450
 
@@ -12,9 +12,12 @@ SCREEN_H    = 450
 var $canon;
 var $spiders = [];
 var $mouseX = null;
-var $canonAngle = 0;
 var $gameScene;
 
+
+//=============================================================================
+//   ユーティリティ
+//=============================================================================
 class Counter {
     constructor(frame) {
         this.initFrame = frame;
@@ -32,6 +35,48 @@ class Counter {
     isFinished() {
         return this.frame <= 0;
     }
+}
+
+function clamp(min, val, max) {
+    if (val < min) return min;
+    if (val > max) return max;
+    return val;
+}
+
+function msToFrame(ms) {
+    return FPS * ms / 1000;
+}
+
+function randomInt(min, max) {
+    return min + Math.floor(Math.random() * (max - min + 1));
+}
+
+
+//=============================================================================
+//   ゲームオブジェクト
+//=============================================================================
+class Canon {
+    constructor() {
+        let canonSprite = new PIXI.Sprite(PIXI.loader.resources["img/canon.png"].texture);
+        canonSprite.width = 70;
+        canonSprite.height = 70;
+        canonSprite.x = (SCREEN_W / 2) - 17;
+        canonSprite.y = SCREEN_H - 35;
+        canonSprite.rotation = 0.5;
+        canonSprite.anchor.x = 0.5;
+        canonSprite.anchor.y = 0.5;
+        this.sprite = canonSprite;
+
+        this.angle = 0;
+        this.rotateByDx(0);
+    }
+
+    rotateByDx(dx) {
+        this.angle += (dx / 5);
+        this.angle = clamp(-90, this.angle, 90);
+        this.sprite.rotation = 2 * Math.PI * (this.angle / 360);
+    }
+
 }
 
 class Spider {
@@ -72,18 +117,14 @@ class Spider {
     }
 }
 
+
+//=============================================================================
+//   システム
+//=============================================================================
 function setup() {
     // add canon
-    let canonSprite = new PIXI.Sprite(PIXI.loader.resources["img/canon.png"].texture);
-    canonSprite.width = 70;
-    canonSprite.height = 70;
-    canonSprite.x = (SCREEN_W / 2) - 17;
-    canonSprite.y = SCREEN_H - 35;
-    canonSprite.rotation = 0.5;
-    canonSprite.anchor.x = 0.5;
-    canonSprite.anchor.y = 0.5;
-    app.stage.addChild(canonSprite);
-    $canon = canonSprite;
+    $canon = new Canon();
+    app.stage.addChild($canon.sprite);
 
     // add text
     let style = new PIXI.TextStyle({
@@ -111,6 +152,7 @@ function setup() {
 function gameLoop(delta) {
     $spiderSpawnCounter.count();
     if ($spiderSpawnCounter.isFinished()) {
+        // add spider
         var spider = new Spider();
         app.stage.addChild(spider.sprite);
         $spiders.push(spider);
@@ -129,29 +171,9 @@ function onMouseMove(e) {
         return;
     }
     var dx = x - $mouseX;
-    $canonAngle += (dx / 5);
-    $canonAngle = clamp(-90, $canonAngle, 90);
-    $canon.rotation = 2 * Math.PI * ($canonAngle / 360);
+    $canon.rotateByDx(dx);
 
     $mouseX = x;
-}
-
-
-//=============================================================================
-//   ユーティリティ関数
-//=============================================================================
-function clamp(min, val, max) {
-    if (val < min) return min;
-    if (val > max) return max;
-    return val;
-}
-
-function msToFrame(ms) {
-    return FPS * ms / 1000;
-}
-
-function randomInt(min, max) {
-    return min + Math.floor(Math.random() * (max - min + 1));
 }
 
 
@@ -171,4 +193,6 @@ document.body.appendChild(app.view);
 PIXI.loader
     .add("img/canon.png")
     .add("img/spider.png")
+    .add("img/bullet.png")
+    .add("img/crash2.png")
     .load(setup);
