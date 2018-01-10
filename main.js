@@ -19,12 +19,6 @@ var SCREEN_H;
 if (window.innerWidth <= 640 || window.innerHeight <= 400) {
     SCREEN_W    = window.innerWidth;
     SCREEN_H    = window.innerHeight;
-        if (this.webkitRequestFullScreen) {
-             this.webkitRequestFullScreen();
-        }
-        else if (this. mozRequestFullScreen) {
-            this. mozRequestFullScreen();
-        }
 } else {
     SCREEN_W    = 640;
     SCREEN_H    = 400;
