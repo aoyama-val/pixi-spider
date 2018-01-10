@@ -1,8 +1,7 @@
 // TODO
-// シーンマネージャをグローバル変数にする
-// - モバイル対応
-//  - タップとスワイプ対応
-//  - 解像度
+//
+// 画像の定義をjsonにする
+//
 //
 //  やっぱり配列へのpushはコンストラクタの中ではなく、呼び出し側でやる方がよかった
 //
@@ -56,8 +55,11 @@ class Counter {
             this.frame = 0;
     }
 
-    reset() {
-        this.frame = this.initFrame;
+    reset(frame) {
+        if (frame == null || frame == undefined)
+            this.frame = this.initFrame;
+        else
+            this.frame = frame;
     }
 
     isFinished() {
