@@ -14,8 +14,21 @@
 //   定数
 //=============================================================================
 const FPS         = 60;        // 基本的にPixiJSでは60FPS固定らしい
-const SCREEN_W    = 800;
-const SCREEN_H    = 450;
+var SCREEN_W;
+var SCREEN_H;
+if (window.innerWidth <= 640 || window.innerHeight <= 400) {
+    SCREEN_W    = window.innerWidth;
+    SCREEN_H    = window.innerHeight;
+        if (this.webkitRequestFullScreen) {
+             this.webkitRequestFullScreen();
+        }
+        else if (this. mozRequestFullScreen) {
+            this. mozRequestFullScreen();
+        }
+} else {
+    SCREEN_W    = 640;
+    SCREEN_H    = 400;
+}
 
 const IMG_BULLET = "img/bullet.png";
 const IMG_CANON  = "img/canon.png";
@@ -29,6 +42,7 @@ const IMG_SPIDER = "img/spider.png";
 var $app;               // PIXI.Application
 var $sceneMgr;
 var $mouseX = -1;
+var $touchX = -1;
 
 var $params = {
     bulletSpeed: 9.0,
@@ -130,6 +144,9 @@ function setup() {
 
     window.addEventListener("mousemove", onMouseMove, false);
     window.addEventListener("click", onClick, false);
+    window.addEventListener("touchstart", onTouchStart, false);
+    window.addEventListener("touchmove", onTouchMove, false);
+    window.addEventListener("touchend", onTouchEnd, false);
 }
 
 function gameLoop(delta) {
@@ -158,6 +175,30 @@ function onClick() {
     if (scene) {
         scene.onClick();
     }
+}
+
+function onTouchStart(e) {
+    e.preventDefault();
+    $touchX = e.touches[0].pageX;
+}
+
+function onTouchMove(e) {
+    var moveX = e.changedTouches[0].pageX - $touchX;
+    var moveRate = moveX / SCREEN_W;
+    var scene = $sceneMgr.getTop();
+    if (scene) {
+        scene.onTouchMove(moveRate);
+    }
+}
+
+function onTouchEnd(e) {
+    e.preventDefault();
+    if (e.touches.length < 1 || Math.abs(e.touches[0].pageX - $touchX) < 2) {
+        onClick();
+    } else {
+        alert(Math.abs(e.touches[0].pageX - $touchX));
+    }
+    $touchX = -1;
 }
 
 function createText(text, x, y, size, color) {
@@ -220,6 +261,9 @@ class IScene {
     }
 
     onMouseMove(e) {
+    }
+
+    onTouchMove(e) {
     }
 }
 
@@ -321,6 +365,10 @@ class GameScene extends IScene {
         this.canon.rotateByDx(dx);
 
         $mouseX = x;
+    }
+
+    onTouchMove(moveRate) {
+        this.canon.rotateByDx(moveRate * 120);
     }
 }
 
